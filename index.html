@@ -919,6 +919,7 @@
       }
     };
 
+    // FIXED: SAVE PRODUCT TO FIREBASE
     window.saveAdminProduct = async (e) => {
       e.preventDefault();
       const btn = document.getElementById("btnSaveProd");
@@ -928,19 +929,20 @@
       const category = document.getElementById("adminCategory").value;
       const variant = document.getElementById("adminTankVariant").value || "";
       const name = document.getElementById("adminProdName").value.trim();
-      const sku = document.getElementById("adminProdSku").value.trim();
+      const sku = document.getElementById("adminProdSku").value.trim() || 'JMP-' + Math.floor(1000 + Math.random() * 9000);
       const price = parseFloat(document.getElementById("adminProdPrice").value) || 0;
       const sizesRaw = document.getElementById("adminProdSizes").value.trim();
       const imageUrl = document.getElementById("adminProdImg").value.trim();
 
       try {
-        await set(push(ref(db, "catalog")), {
+        const newRef = push(ref(db, "catalog"));
+        await set(newRef, {
           brand, category, variant, name, sku, price,
           sizes: sizesRaw ? sizesRaw.split(",").map(s => s.trim()).filter(Boolean) : ["Standard"],
           imageUrl,
           createdAt: Date.now()
         });
-        alert(`Product added to live catalog: ${brand} - ${name}`);
+        alert(`Product successfully added to live catalog!`);
         e.target.reset();
         onAdminBrandChange();
         closeModal("adminModal");
@@ -951,6 +953,7 @@
       }
     };
 
+    // FIXED: SAVE CUSTOMER BILL TO FIREBASE
     window.saveAdminBill = async (e) => {
       e.preventDefault();
       const btn = document.getElementById("btnSaveBill");
@@ -965,10 +968,11 @@
       const note = document.getElementById("billNote").value.trim();
 
       try {
-        await set(push(ref(db, `customerBills/${mobile}`)), {
+        const newRef = push(ref(db, `customerBills/${mobile}`));
+        await set(newRef, {
           mobile, customerName, billNumber, date, amount, fileUrl, note, uploadedAt: Date.now()
         });
-        alert(`Bill #${billNumber} published for mobile ${mobile}.`);
+        alert(`Bill #${billNumber} successfully published for mobile ${mobile}!`);
         e.target.reset();
         closeModal("adminModal");
       } catch (err) {
@@ -978,18 +982,20 @@
       }
     };
 
+    // FIXED: SAVE BRAND BROCHURE TO FIREBASE
     window.saveAdminBrochure = async (e) => {
       e.preventDefault();
       const btn = document.getElementById("btnSaveBrochure");
       btn.disabled = true; btn.textContent = "Saving...";
       try {
-        await set(push(ref(db, "brochures")), {
+        const newRef = push(ref(db, "brochures"));
+        await set(newRef, {
           brand: document.getElementById("brochureBrand").value,
           title: document.getElementById("brochureTitle").value.trim(),
           url: document.getElementById("brochureUrl").value.trim(),
           createdAt: Date.now()
         });
-        alert("Catalogue PDF added!");
+        alert("Catalogue PDF added successfully!");
         e.target.reset();
         closeModal("adminModal");
       } catch (err) {
