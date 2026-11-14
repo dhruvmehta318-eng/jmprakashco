@@ -2991,4 +2991,193 @@
     console.log("Firebase Connected to App Successfully!");
       </script>
     </body>
-</html>
+   <!-- === START: ADMIN BRAND-RESTRICTED INVENTORY MANAGER === -->
+<button onclick="openAdminInventoryModal()" 
+  class="fixed bottom-5 left-5 z-40 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 border border-slate-700">
+  <span>🔒 Admin: Add Item</span>
+</button>
+
+<div id="adminInventoryModal" class="fixed inset-0 z-50 hidden bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-bold text-slate-900">Add Catalog Item (Admin)</h3>
+      <button onclick="closeAdminInventoryModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold">&times;</button>
+    </div>
+
+    <form id="brandRestrictedForm" onsubmit="submitShopCatalogItem(event)" class="space-y-3.5">
+      <!-- Brand Selector -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Brand *</label>
+        <select id="adminBrandSelect" onchange="updateAdminProductTypes()" required
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:border-blue-600">
+          <option value="">-- Select Brand --</option>
+          <option value="Plasto">Plasto</option>
+          <option value="Ashirvad">Ashirvad</option>
+          <option value="Himalaya">Himalaya</option>
+          <option value="Parryware">Parryware</option>
+          <option value="Sonet">Sonet</option>
+          <option value="Zoloto">Zoloto</option>
+        </select>
+      </div>
+
+      <!-- Filtered Product Type Selector -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Product Category *</label>
+        <select id="adminTypeSelect" onchange="toggleAdminTankLayer()" required disabled
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-slate-50 disabled:opacity-60 focus:outline-none focus:border-blue-600">
+          <option value="">Select a brand first</option>
+        </select>
+      </div>
+
+      <!-- Tank Layer Selector (Only visible for Plasto & Himalaya Water Tanks) -->
+      <div id="adminTankLayerWrapper" class="hidden">
+        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Water Tank Layer *</label>
+        <select id="adminTankLayerSelect"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:border-blue-600">
+          <option value="6-Layer">6-Layer</option>
+          <option value="10-Layer">10-Layer</option>
+        </select>
+      </div>
+
+      <!-- Item Name / Size -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Item Name & Size *</label>
+        <input type="text" id="adminItemName" placeholder="e.g., CPVC Elbow 1 Inch / 1000L Tank" required
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:border-blue-600">
+      </div>
+
+      <!-- Price -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">MRP / Base Rate (₹) *</label>
+        <input type="number" id="adminItemPrice" step="0.01" placeholder="e.g., 450" required
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:border-blue-600">
+      </div>
+
+      <!-- Optional Image URL -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 uppercase mb-1">Product Image URL (Optional)</label>
+        <input type="text" id="adminItemImage" placeholder="e.g., ./plasto-tank.jpg or https://..."
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:border-blue-600">
+      </div>
+
+      <div class="pt-2 flex justify-end gap-2">
+        <button type="button" onclick="closeAdminInventoryModal()"
+          class="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
+        <button type="submit" id="adminSubmitBtn"
+          class="px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow">
+          Save to Database
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script type="module">
+  import { getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, push, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  // Change this PIN to whatever secret 4-6 digit code you want
+  const ADMIN_SECRET_PIN = "1234";
+
+  // Strict J M Prakash & Co Brand Rules
+  const BRAND_RULES = {
+    "Plasto": ["Pipes", "Fittings", "Water Tanks"],
+    "Ashirvad": ["Pipes", "Fittings"],
+    "Himalaya": ["Water Tanks"],
+    "Parryware": ["Sanitaryware", "CP Fittings"],
+    "Sonet": ["Sanitaryware"],
+    "Zoloto": ["Ball Valves"]
+  };
+
+  window.openAdminInventoryModal = function() {
+    const enteredPin = prompt("Enter Admin PIN to manage inventory:");
+    if (enteredPin !== ADMIN_SECRET_PIN) {
+      if (enteredPin !== null) alert("Incorrect PIN. Access denied.");
+      return;
+    }
+    document.getElementById("adminInventoryModal").classList.remove("hidden");
+  };
+
+  window.closeAdminInventoryModal = function() {
+    document.getElementById("adminInventoryModal").classList.add("hidden");
+  };
+
+  window.updateAdminProductTypes = function() {
+    const brand = document.getElementById("adminBrandSelect").value;
+    const typeSelect = document.getElementById("adminTypeSelect");
+    const layerWrapper = document.getElementById("adminTankLayerWrapper");
+
+    typeSelect.innerHTML = "";
+    layerWrapper.classList.add("hidden");
+
+    if (!brand || !BRAND_RULES[brand]) {
+      typeSelect.disabled = true;
+      typeSelect.innerHTML = '<option value="">Select a brand first</option>';
+      return;
+    }
+
+    typeSelect.disabled = false;
+    typeSelect.classList.remove("bg-slate-50");
+    typeSelect.innerHTML = '<option value="">-- Select Product Category --</option>';
+
+    BRAND_RULES[brand].forEach(category => {
+      const opt = document.createElement("option");
+      opt.value = category;
+      opt.textContent = category;
+      typeSelect.appendChild(opt);
+    });
+  };
+
+  window.toggleAdminTankLayer = function() {
+    const selectedType = document.getElementById("adminTypeSelect").value;
+    const layerWrapper = document.getElementById("adminTankLayerWrapper");
+    if (selectedType === "Water Tanks") {
+      layerWrapper.classList.remove("hidden");
+    } else {
+      layerWrapper.classList.add("hidden");
+    }
+  };
+
+  window.submitShopCatalogItem = async function(event) {
+    event.preventDefault();
+    const btn = document.getElementById("adminSubmitBtn");
+    btn.disabled = true;
+    btn.textContent = "Saving...";
+
+    const brand = document.getElementById("adminBrandSelect").value;
+    const category = document.getElementById("adminTypeSelect").value;
+    const isTank = category === "Water Tanks";
+    const tankLayer = isTank ? document.getElementById("adminTankLayerSelect").value : null;
+    const name = document.getElementById("adminItemName").value.trim();
+    const price = parseFloat(document.getElementById("adminItemPrice").value);
+    const imageUrl = document.getElementById("adminItemImage").value.trim();
+
+    try {
+      const db = getDatabase(getApp());
+      const newItemRef = push(ref(db, "catalog"));
+
+      await set(newItemRef, {
+        brand: brand,
+        category: category,
+        tankLayer: tankLayer, // Will be "6-Layer", "10-Layer", or null
+        name: isTank ? `${name} (${tankLayer})` : name,
+        price: price,
+        imageUrl: imageUrl || "",
+        updatedAt: Date.now()
+      });
+
+      alert(`Saved: ${brand} - ${name} (₹${price})`);
+      document.getElementById("brandRestrictedForm").reset();
+      updateAdminProductTypes();
+      closeAdminInventoryModal();
+    } catch (err) {
+      console.error("Firebase save error:", err);
+      alert("Failed to save item. Check console or database rules.");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Save to Database";
+    }
+  };
+</script>
+<!-- === END: ADMIN BRAND-RESTRICTED INVENTORY MANAGER === -->
+    </html>
