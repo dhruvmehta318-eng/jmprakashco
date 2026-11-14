@@ -2990,6 +2990,14 @@
     const db = getDatabase(app);
     console.log("Firebase Connected to App Successfully!");
       </script>
+    <script>
+  document.querySelectorAll('button').forEach(btn => {
+    if (btn.textContent.includes('Add Custom Product') || btn.textContent.includes('Upload PDF Brochure')) {
+      btn.style.display = 'none';
+    }
+  });
+    </script>
+    
     </body>
    <!-- === START: ADMIN BRAND-RESTRICTED INVENTORY MANAGER === -->
 <button onclick="openAdminInventoryModal()" 
