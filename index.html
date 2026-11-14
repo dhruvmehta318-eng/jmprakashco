@@ -239,6 +239,7 @@
         <button onclick="closeModal('adminModal')" class="text-stone-400 hover:text-stone-700 text-2xl font-bold">&times;</button>
       </div>
 
+      <!-- Admin Tabs -->
       <div class="grid grid-cols-3 gap-1.5 bg-stone-100 p-1 rounded-xl mb-4 text-xs font-bold">
         <button type="button" id="tabBtnCatalog" onclick="switchAdminTab('catalog')" class="py-2 rounded-lg bg-white text-[#14281D] shadow-sm">
           + Add Product
@@ -878,11 +879,19 @@
       document.getElementById("adminModal").classList.remove("hidden");
     };
 
+    // FIXED ADMIN TABS SWITCHING LOGIC
     window.switchAdminTab = (tab) => {
-      ["catalog", "bills", "brochure"].forEach(t => {
-        document.getElementById(`admin${t.charAt(0).toUpperCase() + t.slice(1)}Form`).classList.toggle("hidden", t !== tab);
-        const btn = document.getElementById(`tabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
-        btn.className = t === tab ? "py-2 rounded-lg bg-white text-[#14281D] shadow-sm" : "py-2 rounded-lg text-stone-600";
+      const formMap = { catalog: "adminCatalogForm", bills: "adminBillForm", brochure: "adminBrochureForm" };
+      const btnMap = { catalog: "tabBtnCatalog", bills: "tabBtnBills", brochure: "tabBtnBrochure" };
+      Object.keys(formMap).forEach(t => {
+        const formEl = document.getElementById(formMap[t]);
+        const btnEl = document.getElementById(btnMap[t]);
+        if (formEl) formEl.classList.toggle("hidden", t !== tab);
+        if (btnEl) {
+          btnEl.className = t === tab
+            ? "py-2 rounded-lg bg-white text-[#14281D] shadow-sm"
+            : "py-2 rounded-lg text-stone-600";
+        }
       });
     };
 
@@ -919,7 +928,6 @@
       }
     };
 
-    // FIXED: SAVE PRODUCT TO FIREBASE
     window.saveAdminProduct = async (e) => {
       e.preventDefault();
       const btn = document.getElementById("btnSaveProd");
@@ -953,7 +961,6 @@
       }
     };
 
-    // FIXED: SAVE CUSTOMER BILL TO FIREBASE
     window.saveAdminBill = async (e) => {
       e.preventDefault();
       const btn = document.getElementById("btnSaveBill");
@@ -982,7 +989,6 @@
       }
     };
 
-    // FIXED: SAVE BRAND BROCHURE TO FIREBASE
     window.saveAdminBrochure = async (e) => {
       e.preventDefault();
       const btn = document.getElementById("btnSaveBrochure");
